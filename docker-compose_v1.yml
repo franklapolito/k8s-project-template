@@ -1,0 +1,52 @@
+# docker-compose.yml
+
+# Top-level keys have NO indentation
+version: '3.8'
+
+services:
+  # 'db' is indented by 2 spaces
+  db:
+    # Service properties are indented by 4 spaces
+    image: postgis/postgis:15-3.3
+    container_name: pricefinder_db
+    environment:
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=pricefinder
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # 'api' is also indented by 2 spaces
+  api:
+    container_name: pricefinder_api
+    build:
+      context: ./pricefinder-api
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgres://myuser:mypassword@db:5432/pricefinder
+    depends_on:
+      - db
+    volumes:
+      - ./pricefinder-api:/app
+      - /app/node_modules
+
+  # 'client' is also indented by 2 spaces
+  client:
+    container_name: pricefinder_client
+    build:
+      context: ./pricefinder-client
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    volumes:
+      - ./pricefinder-client:/app
+      - /app/node_modules
+
+# Top-level key 'volumes' has NO indentation
+volumes:
+  # Volume name is indented by 2 spaces
+  pgdata:
