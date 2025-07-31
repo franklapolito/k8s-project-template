@@ -1,24 +1,54 @@
+# docker-compose.yml
+
 services:
-  # Node.js API Service
+  # The PostgreSQL Database Service with PostGIS
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: pricefinder_db
+    environment:
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=pricefinder
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # This healthcheck tells Docker to check if the database is ready
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d pricefinder"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Our Node.js API Service
   api:
-    container_name: template_api
+    container_name: pricefinder_api
     build:
       context: ./pricefinder-api
     ports:
       - "3001:3001"
+    environment:
+      - DATABASE_URL=postgres://myuser:mypassword@db:5432/pricefinder
+    # This condition tells the API to wait for the DB to be healthy
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
       - ./pricefinder-api:/app
       - /app/node_modules
 
-  # React Client Service
+  # Our React Client Service
   client:
-    container_name: template_client
+    container_name: pricefinder_client
     build:
       context: ./pricefinder-client
     ports:
-      - "5173:80"
+      - "5173:5173"
     depends_on:
       - api
     volumes:
       - ./pricefinder-client:/app
       - /app/node_modules
+
+volumes:
+  pgdata:
