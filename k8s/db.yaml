@@ -1,0 +1,63 @@
+# db.yaml
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: "mypassword"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-service
+spec:
+  selector:
+    app: db
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db-statefulset
+spec:
+  serviceName: "db-service"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - name: postgis
+        image: postgis/postgis:15-3.3
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "pricefinder"
+        - name: POSTGRES_USER
+          value: "myuser"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: POSTGRES_PASSWORD
+        volumeMounts:
+        - name: db-storage
+          mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+  - metadata:
+      name: db-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi

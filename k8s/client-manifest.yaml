@@ -1,0 +1,37 @@
+# A Service to expose the frontend to the internet
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-service
+spec:
+  # This type creates an external IP on most cloud providers
+  type: LoadBalancer
+  selector:
+    app: client
+  ports:
+    - protocol: TCP
+      port: 80 # The public-facing port
+      targetPort: 80 # The Nginx port inside the container
+
+---
+# A Deployment to manage the frontend pods
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      containers:
+      - name: client
+        # Make sure this points to the production image you pushed to your registry
+        image: your-username/pricefinder-client:latest 
+        ports:
+        - containerPort: 80
